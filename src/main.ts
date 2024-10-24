@@ -1,16 +1,50 @@
-import { app, BrowserWindow } from 'electron';
+import { app, BrowserWindow, ipcMain } from 'electron';
 import path from 'path';
 
 import started from "electron-squirrel-startup";
+import { ArtnetActor, ArtnetSenderMachine } from './machine/artnetSender.machine';
+import { createActor } from 'xstate';
+import stringify from 'safe-stable-stringify';
+import { NetworkInterface } from './types/network';
 
 // Handle creating/removing shortcuts on Windows when installing/uninstalling.
 if (started) {
   app.quit();
 }
 
+let artnetActor: ArtnetActor | null = null;
+let mainWindow: BrowserWindow | null = null;
+
+const startArtnet = () => {
+  artnetActor?.stop();
+  artnetActor = createActor(ArtnetSenderMachine, {
+    input: {
+      networkInterfacePollingIntervalInMs: 5000
+    },
+    inspect: (inspectionEvent) => {
+      if (inspectionEvent.type === "@xstate.snapshot") {
+        const rawSnapshot = stringify(inspectionEvent.snapshot);
+        mainWindow?.webContents.send("SNAPSHOT", rawSnapshot);
+      } else if (inspectionEvent.type === "@xstate.event") {
+        const rawEvent = stringify(inspectionEvent.event);
+        mainWindow?.webContents.send("EVENT", rawEvent);
+      }
+    }
+  });
+  artnetActor.start();
+}
+
+const setInterface = (networkInterface: NetworkInterface) => {
+  artnetActor?.send({
+    type: 'NETWORK_INTERFACE_SET',
+    networkInterface
+  });
+}
+
+
 const createWindow = () => {
   // Create the browser window.
-  const mainWindow = new BrowserWindow({
+  mainWindow = new BrowserWindow({
     width: 800,
     height: 600,
     webPreferences: {
@@ -21,12 +55,13 @@ const createWindow = () => {
   // and load the index.html of the app.
   if (MAIN_WINDOW_VITE_DEV_SERVER_URL) {
     mainWindow.loadURL(MAIN_WINDOW_VITE_DEV_SERVER_URL);
+    mainWindow.webContents.openDevTools();
   } else {
     mainWindow.loadFile(path.join(__dirname, `../renderer/${MAIN_WINDOW_VITE_NAME}/index.html`));
   }
 
-  // Open the DevTools.
-  mainWindow.webContents.openDevTools();
+  ipcMain.on("START", () => startArtnet());
+  ipcMain.on("SET_INTERFACE", (_, iFace: NetworkInterface) => setInterface(iFace));
 };
 
 // This method will be called when Electron has finished
