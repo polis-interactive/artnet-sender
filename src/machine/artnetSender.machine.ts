@@ -1,18 +1,26 @@
-import { NetworkInterface } from "../types/network";
+import { NetworkInterface, IsSameNetworkInterface } from "../types/network";
 import { ActorRefFrom, AnyEventObject, assign, enqueueActions, EventFrom, setup, SnapshotFrom } from "xstate";
-import { IsSameNetworkInterface, NetworkInterfaceLogic } from "./network.logic";
+import { NetworkInterfaceLogic } from "./network.logic";
+import { ArtnetReceiverLogic } from "./artnetReceiver.logic";
+import { ArtnetReceiver } from "../services/artnetReceiver";
 
 export type ArtnetSenderInput = {
   networkInterfacePollingIntervalInMs: number;
+  artnetPollingIntervalInMs: number; 
 };
 
 export type ArtnetSenderContext = {
   networkInterfacePollingIntervalInMs: number;
   networkInterfaces: Array<NetworkInterface>,
-  networkInterface: NetworkInterface | null
+  networkInterface: NetworkInterface | null,
+  artnetPollingIntervalInMs: number;
+  artnetPollReplies: Array<string>;
 };
 
-export type ArtnetSenderContextStore = Omit<ArtnetSenderContext, 'networkInterfacePollingIntervalInMs'>
+export type ArtnetSenderContextStore = Pick<
+  ArtnetSenderContext,
+  'networkInterfaces' | 'networkInterface' | 'artnetPollReplies'
+>
 
 export const ArtnetSenderMachine = setup({
   types: {
@@ -20,7 +28,8 @@ export const ArtnetSenderMachine = setup({
     context: {} as ArtnetSenderContext
   },
   actors: {
-    networkInterfaceActor: NetworkInterfaceLogic
+    networkInterfaceActor: NetworkInterfaceLogic,
+    artnetReceiverActor: ArtnetReceiverLogic
   },
   actions: {
     updateNetworkInterfaces: enqueueActions(({ context: { networkInterface }, enqueue, event}) => {
@@ -35,8 +44,12 @@ export const ArtnetSenderMachine = setup({
         enqueue.raise({ type: 'NETWORK_INTERFACE_UNSET' })
       }
     }),
-    setNetworkInterface: assign({
-      networkInterface: ({event}) => event.networkInterface
+    setNetworkInterface: enqueueActions(({ enqueue, event }) => {
+      const networkInterface = (event as AnyEventObject).networkInterface as NetworkInterface;
+      enqueue.assign({
+        networkInterface: () => networkInterface
+      });
+      ArtnetReceiver.SetIface(networkInterface);
     })
   }
 }).createMachine({
@@ -44,7 +57,9 @@ export const ArtnetSenderMachine = setup({
   context: ({ input }) => ({
     networkInterfacePollingIntervalInMs: input.networkInterfacePollingIntervalInMs,
     networkInterfaces: [],
-    networkInterface: null
+    networkInterface: null,
+    artnetPollingIntervalInMs: input.artnetPollingIntervalInMs,
+    artnetPollReplies: []
   }),
   invoke: [
     {
@@ -64,7 +79,17 @@ export const ArtnetSenderMachine = setup({
       }
     },
     running: {
+      invoke: [
+        {
+          id: 'artnetReceiverActor',
+          src: 'artnetReceiverActor',
+          input: ({ context: { networkInterface }}) => ({ networkInterface })
+        }
+      ],
       on: {
+        'NETWORK_INTERFACE_SET': {
+          actions: 'setNetworkInterface'
+        },
         'NETWORK_INTERFACE_UNSET': {
           target: 'waitingForNetworkInterface'
         }

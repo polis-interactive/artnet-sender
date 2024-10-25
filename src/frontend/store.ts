@@ -26,7 +26,8 @@ export const useArtnetStore = defineStore('artnet-state', () => {
     if (!useSnapshot || !useSnapshot.context) {
       return {
         networkInterfaces: [],
-        networkInterface: null
+        networkInterface: null,
+        artnetPollReplies: []
       }
     }
     return useSnapshot.context;

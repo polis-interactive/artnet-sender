@@ -19,7 +19,8 @@ const startArtnet = () => {
   artnetActor?.stop();
   artnetActor = createActor(ArtnetSenderMachine, {
     input: {
-      networkInterfacePollingIntervalInMs: 5000
+      networkInterfacePollingIntervalInMs: 5000,
+      artnetPollingIntervalInMs: 5000,
     },
     inspect: (inspectionEvent) => {
       if (inspectionEvent.type === "@xstate.snapshot") {
@@ -32,14 +33,14 @@ const startArtnet = () => {
     }
   });
   artnetActor.start();
-}
+};
 
 const setInterface = (networkInterface: NetworkInterface) => {
   artnetActor?.send({
     type: 'NETWORK_INTERFACE_SET',
     networkInterface
   });
-}
+};
 
 
 const createWindow = () => {
@@ -86,5 +87,7 @@ app.on('activate', () => {
   }
 });
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and import them here.
+app.on('before-quit', () => {
+  ipcMain.removeAllListeners("SET_INTERFACE");
+  ipcMain.removeAllListeners("START");
+});
