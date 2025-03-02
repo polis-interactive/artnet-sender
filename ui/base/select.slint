@@ -1,0 +1,12 @@
+
+export struct Option {
+  name: string,
+  address: string,
+  netmask: string,
+}
+
+
+export component Select {
+  in property <[Option]> options: [];
+  in property <string> placeholder: "";
+}

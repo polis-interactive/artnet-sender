@@ -1,0 +1,35 @@
+[package]
+name = "artnet-sender"
+version = "0.1.0"
+edition = "2021"
+default-run = "artnet-sender"
+build = "build.rs"
+
+[package.metadata.packager]
+before-packaging-command = "cargo build --release"
+product-name = "Artnet Sender"
+identifier = "com.polis.artnet_sender"
+resources = [
+  "Cargo.toml",
+  "src",
+  "icons/favicon-16x16.png",
+  "icons/favicon-32x32.png",
+  "icons/android-chrome-192x192.png",
+  "icons/android-chrome-512x512.png",
+  "icons/favicon.ico",
+]
+icons = [
+  "icons/favicon-16x16.png",
+  "icons/favicon-32x32.png",
+  "icons/android-chrome-192x192.png",
+  "icons/android-chrome-512x512.png",
+  "icons/favicon.ico",
+]
+
+[dependencies]
+netdev = "0.32.0"
+rand = "0.9.0"
+slint = "1.8.0"
+
+[build-dependencies]
+slint-build = "1.8.0"

@@ -1,0 +1,19 @@
+import { Store } from "../store.slint";
+
+export component NetworkInterfaceSelector {
+  public pure function network_interfaces_placeholder() -> string {
+    if !Store.has_searched_interfaces {
+      return "Waiting for network interfaces";
+    } else if Store.network_interfaces.length == 0 {
+      return "No network interfaces found";
+    } else { 
+      return "Select network interface";
+    }
+  }
+  public pure function interface_selectable() -> bool {
+    Store.network_interfaces.length > 0
+  }
+  Text {
+    text: root.network_interfaces_placeholder();
+  }
+}

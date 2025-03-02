@@ -1,0 +1,11 @@
+
+export struct NetworkInterface {
+  name: string,
+  address: string,
+  netmask: string,
+}
+
+export global Store {
+  in property <bool> has_searched_interfaces: false;
+  in property <[NetworkInterface]> network_interfaces;
+}
