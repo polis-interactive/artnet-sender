@@ -28,7 +28,12 @@ fn main() -> Result<(), Box<dyn Error>> {
   let timer = Timer::default();
   timer.start(slint::TimerMode::Repeated, Duration::from_secs(5), get_iface_callback);
 
-  app.run()?;
+  let sub_app = MyMom::new().unwrap();
+  app.show()?;
+  sub_app.show()?;
+  slint::run_event_loop()?;
+  app.hide()?;
+  sub_app.hide()?;
 
   Ok(())
 }

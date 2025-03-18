@@ -27,9 +27,9 @@ icons = [
 ]
 
 [dependencies]
-netdev = "0.32.0"
+netdev = "0.33.0"
 rand = "0.9.0"
-slint = "1.8.0"
+slint = "1.10.0"
 
 [build-dependencies]
-slint-build = "1.8.0"
+slint-build = "1.10.0"
